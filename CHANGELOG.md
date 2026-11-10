@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.0 (unreleased, 2026-11-10)
+## 0.1.0 (2026-11-10)
 
 The first release, for the Shipping API. Install with `pip install reeds-sdk`; import it as `reeds`.
 
