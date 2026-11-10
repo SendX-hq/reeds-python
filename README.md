@@ -58,7 +58,6 @@ Reeds offers its services as separate APIs. The library gives each one a propert
 | Service | On the client | Status |
 |---|---|---|
 | **Shipping**: quotes, deliveries, labels, the wallet, invoices, the sandbox | `reeds.shipping` | **Available** |
-| **Store**: products, orders and storefronts for Reeds Stores | `reeds.store` | Coming soon |
 
 Webhooks are shared: one endpoint receives every service's events, all verified by `reeds.webhooks`. A new service arrives in a minor version of this library, so upgrading never breaks the services you already use.
 
