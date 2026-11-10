@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from email.utils import parsedate_to_datetime
 from typing import Any, Literal
 
-import httpx
+import httpx2
 
 from ._errors import APIConnectionError, APIConnectionTimeoutError, APIError, AuthenticationError, ReedsError
 from ._files import FileResponse, filename_of
@@ -80,7 +80,7 @@ def parse_retry_after(value: str | None, now: float) -> float | None:
     return seconds if seconds >= 0 else None
 
 
-def read_body(response: httpx.Response) -> object:
+def read_body(response: httpx2.Response) -> object:
     text = response.text
     if not text:
         return None
@@ -161,7 +161,7 @@ class BaseCore:
         client_id, client_secret = self._check_credentials()
         return {"grant_type": "client_credentials", "client_id": client_id, "client_secret": client_secret}
 
-    def _token_from(self, response: httpx.Response) -> Token:
+    def _token_from(self, response: httpx2.Response) -> Token:
         body = read_body(response)
         access_token = body.get("access_token") if isinstance(body, dict) else None
         if not isinstance(body, dict) or not isinstance(access_token, str) or not access_token:
@@ -224,15 +224,15 @@ class BaseCore:
         return float(min(8.0, 0.5 * 2**attempt) * (1 - 0.25 * self._random()))
 
     @staticmethod
-    def _connection_error(error: httpx.HTTPError, timeout: float) -> ReedsError:
-        if isinstance(error, httpx.TimeoutException):
+    def _connection_error(error: httpx2.HTTPError, timeout: float) -> ReedsError:
+        if isinstance(error, httpx2.TimeoutException):
             return APIConnectionTimeoutError(f"No answer from Reeds within {timeout:g} s.", code="TIMEOUT")
         return APIConnectionError(f"Couldn't reach Reeds: {error}", code="CONNECTION_FAILED")
 
     # ------------------------------------------------------------ responses
 
     @staticmethod
-    def _unexpected(response: httpx.Response) -> APIError:
+    def _unexpected(response: httpx2.Response) -> APIError:
         return APIError(
             f"Reeds answered {response.status_code} with a body this version of the library doesn't recognise.",
             code="UNEXPECTED_RESPONSE",
@@ -240,20 +240,20 @@ class BaseCore:
             request_id=response.headers.get("x-request-id"),
         )
 
-    def _data(self, response: httpx.Response) -> Any:
+    def _data(self, response: httpx2.Response) -> Any:
         body = read_body(response)
         if not isinstance(body, dict) or body.get("status") != "success" or "data" not in body:
             raise self._unexpected(response)
         return body["data"]
 
-    def _list(self, response: httpx.Response) -> tuple[list[Any], bool]:
+    def _list(self, response: httpx2.Response) -> tuple[list[Any], bool]:
         body = read_body(response)
         if not isinstance(body, dict) or not isinstance(body.get("data"), list):
             raise self._unexpected(response)
         return body["data"], bool(body.get("has_more"))
 
     @staticmethod
-    def _file(response: httpx.Response) -> FileResponse:
+    def _file(response: httpx2.Response) -> FileResponse:
         return FileResponse(
             data=response.content,
             content_type=response.headers.get("content-type", "application/octet-stream"),

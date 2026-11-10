@@ -180,7 +180,7 @@ def types() -> None:
 
 
 def configuration() -> None:
-    import httpx
+    import httpx2
 
     from reeds import Reeds
 
@@ -191,7 +191,7 @@ def configuration() -> None:
         timeout=60,  # seconds per attempt
         max_retries=2,
         default_headers={"X-Your-Header": "value"},
-        http_client=httpx.Client(proxy="http://proxy.internal:8080"),  # proxies, custom TLS
+        http_client=httpx2.Client(proxy="http://proxy.internal:8080"),  # proxies, custom TLS
     )
 
     with Reeds() as reeds:  # closes its connections at the end

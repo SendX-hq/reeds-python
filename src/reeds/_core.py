@@ -1,5 +1,5 @@
-"""The HTTP calls, once for each flavour: SyncCore (httpx.Client) and
-AsyncCore (httpx.AsyncClient). Both follow the same rules, from _base.py:
+"""The HTTP calls, once for each flavour: SyncCore (httpx2.Client) and
+AsyncCore (httpx2.AsyncClient). Both follow the same rules, from _base.py:
 
 - one token per client, fetched on first use, refreshed a minute before it
   expires, one refresh at a time; a 401 TOKEN_EXPIRED or UNAUTHENTICATED gets
@@ -21,7 +21,7 @@ from collections.abc import Awaitable, Callable, Mapping
 from typing import Any
 from urllib.parse import urlencode
 
-import httpx
+import httpx2
 
 from ._base import (
     MAX_RETRY_AFTER_SECONDS,
@@ -67,9 +67,9 @@ class _Prepared:
 
 
 class SyncCore(BaseCore):
-    def __init__(self, *, http_client: httpx.Client | None = None, **config: Any) -> None:
+    def __init__(self, *, http_client: httpx2.Client | None = None, **config: Any) -> None:
         super().__init__(**config)
-        self._http = http_client if http_client is not None else httpx.Client(timeout=self.timeout)
+        self._http = http_client if http_client is not None else httpx2.Client(timeout=self.timeout)
         self._owns_http = http_client is None
         self._lock = threading.Lock()
         self._sleep: Callable[[float], None] = time.sleep
@@ -129,7 +129,7 @@ class SyncCore(BaseCore):
         accept: str = "application/json",
         auth: bool = True,
         options: RequestOptions = NO_OPTIONS,
-    ) -> httpx.Response:
+    ) -> httpx2.Response:
         prepared = _Prepared(self, method, auth, json, form, options)
         url, params = self._url(path), encode_query(query)
         refreshed = False
@@ -139,7 +139,7 @@ class SyncCore(BaseCore):
             headers = self._headers(accept=accept, token=token, idempotency_key=prepared.idempotency_key, content_type=prepared.content_type, options=options)
             try:
                 response = self._http.request(method, url, params=params, content=prepared.content, headers=headers, timeout=prepared.timeout)
-            except httpx.RequestError as error:
+            except httpx2.RequestError as error:
                 if attempt < prepared.max_retries:
                     self._sleep(self._backoff(attempt))
                     attempt += 1
@@ -168,9 +168,9 @@ class SyncCore(BaseCore):
 
 
 class AsyncCore(BaseCore):
-    def __init__(self, *, http_client: httpx.AsyncClient | None = None, **config: Any) -> None:
+    def __init__(self, *, http_client: httpx2.AsyncClient | None = None, **config: Any) -> None:
         super().__init__(**config)
-        self._http = http_client if http_client is not None else httpx.AsyncClient(timeout=self.timeout)
+        self._http = http_client if http_client is not None else httpx2.AsyncClient(timeout=self.timeout)
         self._owns_http = http_client is None
         self._lock: asyncio.Lock | None = None
         self._sleep: Callable[[float], Awaitable[None]] = asyncio.sleep
@@ -233,7 +233,7 @@ class AsyncCore(BaseCore):
         accept: str = "application/json",
         auth: bool = True,
         options: RequestOptions = NO_OPTIONS,
-    ) -> httpx.Response:
+    ) -> httpx2.Response:
         prepared = _Prepared(self, method, auth, json, form, options)
         url, params = self._url(path), encode_query(query)
         refreshed = False
@@ -243,7 +243,7 @@ class AsyncCore(BaseCore):
             headers = self._headers(accept=accept, token=token, idempotency_key=prepared.idempotency_key, content_type=prepared.content_type, options=options)
             try:
                 response = await self._http.request(method, url, params=params, content=prepared.content, headers=headers, timeout=prepared.timeout)
-            except httpx.RequestError as error:
+            except httpx2.RequestError as error:
                 if attempt < prepared.max_retries:
                     await self._sleep(self._backoff(attempt))
                     attempt += 1

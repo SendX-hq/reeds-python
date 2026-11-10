@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        python: ["3.11", "3.12", "3.13", "3.14"]
         deps: [lowest, latest]
     steps:
       - uses: actions/checkout@v4
@@ -33,7 +33,7 @@ jobs:
           else
             uv pip install -e . --group dev
           fi
-          uv pip list | grep -E '^(httpx|pydantic|pydantic-core|typing-extensions) '
+          uv pip list | grep -E '^(httpx2|httpcore2|pydantic|pydantic-core|typing-extensions) '
       - name: Tests (both clients; the framework handlers with the latest dependencies)
         run: .venv/bin/python -m pytest
       - name: Smoke test over real HTTP

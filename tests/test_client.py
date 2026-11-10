@@ -9,7 +9,7 @@ from concurrent.futures import ThreadPoolExecutor
 from email.utils import formatdate
 from typing import Any
 
-import httpx
+import httpx2
 import pytest
 
 import reeds
@@ -215,7 +215,7 @@ async def test_a_response_missing_a_field_the_spec_requires_still_parses(fake: A
 
 
 async def test_a_2xx_body_that_isnt_the_envelope_is_an_api_error(fake: Any) -> None:
-    api = fake(lambda call: httpx.Response(200, content=b"<html>ok</html>", headers={"x-request-id": "req_x"}))
+    api = fake(lambda call: httpx2.Response(200, content=b"<html>ok</html>", headers={"x-request-id": "req_x"}))
     client = api.client()
     error = await catch(lambda: client.shipping.coverage.get())
     assert isinstance(error, APIError)
@@ -223,7 +223,7 @@ async def test_a_2xx_body_that_isnt_the_envelope_is_an_api_error(fake: Any) -> N
 
 
 async def test_gives_up_on_a_timed_out_attempt_after_the_retries(fake: Any) -> None:
-    api = fake(lambda call: httpx.ReadTimeout("timed out"))
+    api = fake(lambda call: httpx2.ReadTimeout("timed out"))
     client = api.client(timeout=5, max_retries=1)
     error = await catch(lambda: client.shipping.coverage.get())
     assert isinstance(error, APIConnectionTimeoutError)
@@ -281,7 +281,7 @@ async def test_retries_409_request_in_progress_but_not_another_409(fake: Any) ->
 
 
 async def test_retries_a_dropped_connection_then_gives_up_with_a_connection_error(fake: Any) -> None:
-    api = fake(lambda call: httpx.ConnectError("connection refused"))
+    api = fake(lambda call: httpx2.ConnectError("connection refused"))
     client = api.client()
     error = await catch(lambda: client.shipping.coverage.get())
     assert isinstance(error, APIConnectionError) and not isinstance(error, APIConnectionTimeoutError)
@@ -357,7 +357,7 @@ async def test_maps_each_status_to_its_class_with_the_code_fields_doc_url_and_re
 
 
 async def test_a_failure_without_a_json_body_still_says_the_status(fake: Any) -> None:
-    api = fake(lambda call: httpx.Response(413, content=b"<html>413 Request Entity Too Large</html>"))
+    api = fake(lambda call: httpx2.Response(413, content=b"<html>413 Request Entity Too Large</html>"))
     client = api.client()
     error = await catch(lambda: client.shipping.coverage.get())
     assert isinstance(error, APIError)
@@ -368,7 +368,7 @@ async def test_a_failure_without_a_json_body_still_says_the_status(fake: Any) ->
 
 
 def test_the_sync_client_closes_its_own_connections_not_yours() -> None:
-    mine = httpx.Client()
+    mine = httpx2.Client()
     with Reeds(client_id="rci_test_x", client_secret="y", http_client=mine) as client:
         assert client.mode == "test"
     assert not mine.is_closed
@@ -379,7 +379,7 @@ def test_the_sync_client_closes_its_own_connections_not_yours() -> None:
 
 
 async def test_the_async_client_closes_its_own_connections_not_yours() -> None:
-    mine = httpx.AsyncClient()
+    mine = httpx2.AsyncClient()
     async with AsyncReeds(client_id="rci_test_x", client_secret="y", http_client=mine) as client:
         assert client.mode == "test"
     assert not mine.is_closed

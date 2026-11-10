@@ -35,7 +35,7 @@ ruff check . && ruff format --check .
 python scripts/generate.py --check    # the generated types match spec/
 ```
 
-CI runs these on Python 3.10 to 3.14, with the latest dependencies and with the lowest versions `pyproject.toml` allows (`uv pip install --resolution lowest-direct`). When you raise a dependency's floor, it's because the lowest job failed.
+CI runs these on Python 3.11 to 3.14, with the latest dependencies and with the lowest versions `pyproject.toml` allows (`uv pip install --resolution lowest-direct`). When you raise a dependency's floor, it's because the lowest job failed.
 
 ## The README
 

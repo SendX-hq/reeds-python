@@ -10,9 +10,10 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from types import TracebackType
+from typing import Self
 
-import httpx
-from typing_extensions import Self, Unpack
+import httpx2
+from typing_extensions import Unpack
 
 from ._base import Mode
 from ._core import AsyncCore, SyncCore
@@ -116,7 +117,7 @@ class Reeds:
     :param timeout: Seconds to wait for a response before giving up on an attempt. Default 60.
     :param max_retries: How many times a failed request is retried when it is safe to. Default 2.
     :param default_headers: Headers sent with every request.
-    :param http_client: An httpx.Client to send with (proxies, custom TLS). The client doesn't close it.
+    :param http_client: An httpx2.Client to send with (proxies, custom TLS). The client doesn't close it.
     """
 
     shipping: Shipping
@@ -133,7 +134,7 @@ class Reeds:
         timeout: float | None = None,
         max_retries: int | None = None,
         default_headers: Mapping[str, str] | None = None,
-        http_client: httpx.Client | None = None,
+        http_client: httpx2.Client | None = None,
     ) -> None:
         self._core = SyncCore(
             client_id=client_id,
@@ -168,7 +169,7 @@ class Reeds:
 
 
 class AsyncReeds:
-    """The Reeds API client, async. The same options as Reeds; ``http_client`` is an httpx.AsyncClient."""
+    """The Reeds API client, async. The same options as Reeds; ``http_client`` is an httpx2.AsyncClient."""
 
     shipping: AsyncShipping
     """The Shipping API: quotes, deliveries, the wallet, invoices and the sandbox."""
@@ -184,7 +185,7 @@ class AsyncReeds:
         timeout: float | None = None,
         max_retries: int | None = None,
         default_headers: Mapping[str, str] | None = None,
-        http_client: httpx.AsyncClient | None = None,
+        http_client: httpx2.AsyncClient | None = None,
     ) -> None:
         self._core = AsyncCore(
             client_id=client_id,

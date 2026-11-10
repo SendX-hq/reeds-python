@@ -7,7 +7,7 @@ import re
 from pathlib import Path
 from typing import Any
 
-import httpx
+import httpx2
 import pytest
 
 from reeds import AsyncPage, FileResponse, Page, PermissionDeniedError
@@ -21,12 +21,12 @@ pickup = {"name": "Tola Fabrics", "phone": "08051234567", "address": "23 Allen A
 dropoff = {"name": "Chinedu Eze", "phone": "08098765432", "address": "14 Admiralty Way", "lga": "Eti-Osa", "state": "Lagos"}
 
 
-def pdf(_call: Call) -> httpx.Response:
-    return httpx.Response(200, content=b"%PDF", headers={"content-type": "application/pdf"})
+def pdf(_call: Call) -> httpx2.Response:
+    return httpx2.Response(200, content=b"%PDF", headers={"content-type": "application/pdf"})
 
 
 async def test_sends_each_call_to_its_path_with_its_method_body_and_query(fake: Any) -> None:
-    def answer(call: Call) -> httpx.Response:
+    def answer(call: Call) -> httpx2.Response:
         if call.url.path.endswith(("/label", "/pdf")):
             return pdf(call)
         if call.method == "GET" and re.search(r"/(deliveries|transactions|invoices)$", call.url.path):
@@ -130,7 +130,7 @@ async def test_a_route_reeds_doesnt_serve_is_available_false_not_an_error(fake: 
 
 
 def pages(fake: Any, ids: list[list[str]]) -> Any:
-    def answer(call: Call) -> httpx.Response:
+    def answer(call: Call) -> httpx2.Response:
         after = call.url.params.get("starting_after")
         index = 0 if after is None else next(i for i, page in enumerate(ids) if page and page[-1] == after) + 1
         page = ids[index] if index < len(ids) else []
@@ -177,7 +177,7 @@ async def test_an_empty_list_ends_at_once(fake: Any) -> None:
 
 async def test_returns_a_labels_bytes_type_and_filename(fake: Any, tmp_path: Path) -> None:
     api = fake(
-        lambda call: httpx.Response(
+        lambda call: httpx2.Response(
             200, content=b"%PDF-1.7 label", headers={"content-type": "application/pdf", "content-disposition": 'inline; filename="reeds-label-HQ3W5F2.pdf"'}
         )
     )
@@ -196,7 +196,7 @@ def test_a_suggested_filename_never_picks_the_directory(tmp_path: Path) -> None:
 
 
 async def test_reads_an_encoded_filename(fake: Any) -> None:
-    api = fake(lambda call: httpx.Response(200, content=b"%PDF", headers={"content-disposition": "attachment; filename*=UTF-8''invoice%20RDS-2026.pdf"}))
+    api = fake(lambda call: httpx2.Response(200, content=b"%PDF", headers={"content-disposition": "attachment; filename*=UTF-8''invoice%20RDS-2026.pdf"}))
     file = await run(api.client().shipping.invoices.pdf("inv_1"))
     assert file.filename == "invoice RDS-2026.pdf"
 

@@ -81,7 +81,7 @@ Webhooks are shared: one endpoint receives every service's events, all verified 
 pip install reeds-sdk
 ```
 
-Or `uv add reeds-sdk`, or `poetry add reeds-sdk`. Import it as `reeds`. It needs Python 3.10 or later, and installs [httpx](https://www.python-httpx.org) and [Pydantic](https://docs.pydantic.dev) 2.
+Or `uv add reeds-sdk`, or `poetry add reeds-sdk`. Import it as `reeds`. It needs Python 3.11 or later, and installs [HTTPX2](https://github.com/pydantic/httpx2) and [Pydantic](https://docs.pydantic.dev) 2.
 
 ## Credentials and modes
 
@@ -503,7 +503,7 @@ An object that doesn't fit its model (a field missing, a value of another type) 
 ## Configuration
 
 ```python
-import httpx
+import httpx2
 
 from reeds import Reeds
 
@@ -514,14 +514,14 @@ reeds = Reeds(
     timeout=60,  # seconds per attempt
     max_retries=2,
     default_headers={"X-Your-Header": "value"},
-    http_client=httpx.Client(proxy="http://proxy.internal:8080"),  # proxies, custom TLS
+    http_client=httpx2.Client(proxy="http://proxy.internal:8080"),  # proxies, custom TLS
 )
 
 with Reeds() as reeds:  # closes its connections at the end
     reeds.shipping.coverage.get()
 ```
 
-`AsyncReeds` takes the same options, with an `httpx.AsyncClient` as `http_client`. A client you pass in stays open: close it yourself.
+`AsyncReeds` takes the same options, with an `httpx2.AsyncClient` as `http_client`. A client you pass in stays open: close it yourself.
 
 ## Versioning
 

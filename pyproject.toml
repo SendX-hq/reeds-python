@@ -9,7 +9,7 @@ description = "The official Python library for the Reeds APIs: one client for ev
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 authors = [{ name = "Reeds", email = "support@getreeds.co" }]
 keywords = ["reeds", "shipping", "delivery", "logistics", "nigeria", "api", "sdk", "webhooks", "ecommerce"]
 classifiers = [
@@ -18,7 +18,6 @@ classifiers = [
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
@@ -28,7 +27,7 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
-    "httpx>=0.26.0,<1",
+    "httpx2>=2.0.0,<3",
     "pydantic>=2.5.0,<3",
     "typing-extensions>=4.7.0",
 ]
@@ -64,12 +63,12 @@ markers = ["e2e: against the real API in Test mode (needs REEDS_E2E_CLIENT_ID an
 
 [tool.mypy]
 strict = true
-python_version = "3.10"
+python_version = "3.11"
 files = ["src/reeds", "tests/readme_examples.py"]
 
 [tool.pyright]
 include = ["tests/readme_examples.py"]
-pythonVersion = "3.10"
+pythonVersion = "3.11"
 typeCheckingMode = "strict"
 # README snippets show calls whose results the reader uses; the checker needn't.
 reportUnusedExpression = "none"
@@ -79,7 +78,7 @@ reportUnusedImport = "none"
 
 [tool.ruff]
 line-length = 160
-target-version = "py310"
+target-version = "py311"
 extend-exclude = ["tests/fixtures"]
 
 [tool.ruff.lint]
