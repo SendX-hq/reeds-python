@@ -1,0 +1,66 @@
+name: Sync the API specs
+
+# The specs live in sendx-api (openapi/*.yaml). When sendx-api deploys to
+# production it sends `shipping-spec-published` here (as it does to the
+# developer hub, reeds-node and reeds-php) with the commit it deployed. This
+# copies that commit's specs into spec/, regenerates src/reeds/*/_generated.py,
+# and opens a pull request. The coverage test keeps the pull request red until
+# every new operation has a method on both clients.
+#
+# Secret: SENDX_API_READ_TOKEN, a fine-grained token with read access to the
+# contents of SendX-hq/sendx-api. Also needs "Allow GitHub Actions to create
+# and approve pull requests" (Settings > Actions > General).
+on:
+  repository_dispatch:
+    types: [shipping-spec-published]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: sendx-api commit or branch to take the specs from
+        default: main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: spec-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    env:
+      SOURCE_REF: ${{ github.event.client_payload.ref || inputs.ref || 'main' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.14"
+      - run: uv venv && uv pip install pyyaml
+      - name: Take the specs production now serves
+        env:
+          GH_TOKEN: ${{ secrets.SENDX_API_READ_TOKEN }}
+        run: |
+          gh api -H "Accept: application/vnd.github.raw" \
+            "repos/SendX-hq/sendx-api/contents/openapi/shipping-v1.yaml?ref=${SOURCE_REF}" \
+            > spec/shipping-v1.yaml
+      - run: .venv/bin/python scripts/generate.py
+      - name: Open or update the sync pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if git diff --quiet -- spec src; then
+            echo "The specs are unchanged."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B spec-sync
+          git commit -am "Sync the API specs from sendx-api ${SOURCE_REF}"
+          git push --force origin spec-sync
+          if ! gh pr view spec-sync --json number >/dev/null 2>&1; then
+            gh pr create --base main --head spec-sync \
+              --title "Sync the API specs from production" \
+              --body "sendx-api deployed \`${SOURCE_REF}\` to production with a changed spec. Add methods for any new operation on both clients (the coverage test says which), note it in CHANGELOG.md, then merge."
+          fi

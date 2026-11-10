@@ -1,0 +1,229 @@
+{
+  "description": "Reeds webhook signature test vectors. Every Reeds SDK must give the same answer for each case: `valid`, or the `error` code. Verify each `payload` (the raw body, UTF-8) against `header` with the `secrets`, at Unix time `now`, with a tolerance of `tolerance` seconds.",
+  "generated_by": "sendx-api fb1cfb6: src/modules/developers/webhooks/signature.ts (signatureHeader, signatureOf)",
+  "tolerance": 300,
+  "cases": [
+    {
+      "name": "valid",
+      "payload": "{\"id\":\"evt_4fQ7Hd2X\",\"type\":\"delivery.booked\",\"created_at\":\"2026-11-09T10:20:00+01:00\",\"livemode\":false,\"data\":{\"delivery\":{\"id\":\"dlv_9Kd3Qx7M\",\"status\":\"scheduled\",\"reference\":\"ORDER-10045\",\"fee\":{\"total\":280000,\"currency\":\"NGN\"}}}}",
+      "header": "t=1793016302,v1=b7e729bf8d5145ab7979be841b3a1a78b3a568f45ab5a6721a52e635e4cab962",
+      "secrets": [
+        "whsec_test_vectorsA1b2C3d4E5f6G7h8I9j0K1l2M3n4"
+      ],
+      "now": 1793016302,
+      "valid": true
+    },
+    {
+      "name": "rotation: the new secret verifies",
+      "payload": "{\"id\":\"evt_4fQ7Hd2X\",\"type\":\"delivery.booked\",\"created_at\":\"2026-11-09T10:20:00+01:00\",\"livemode\":false,\"data\":{\"delivery\":{\"id\":\"dlv_9Kd3Qx7M\",\"status\":\"scheduled\",\"reference\":\"ORDER-10045\",\"fee\":{\"total\":280000,\"currency\":\"NGN\"}}}}",
+      "header": "t=1793016302,v1=633e786165302cf49cb394b2149f54fbab25365b1fbab5fdcea773c41885a4d1,v1=b7e729bf8d5145ab7979be841b3a1a78b3a568f45ab5a6721a52e635e4cab962",
+      "secrets": [
+        "whsec_test_vectorsZ9y8X7w6V5u4T3s2R1q0P9o8N7m6"
+      ],
+      "now": 1793016302,
+      "valid": true
+    },
+    {
+      "name": "rotation: the old secret verifies",
+      "payload": "{\"id\":\"evt_4fQ7Hd2X\",\"type\":\"delivery.booked\",\"created_at\":\"2026-11-09T10:20:00+01:00\",\"livemode\":false,\"data\":{\"delivery\":{\"id\":\"dlv_9Kd3Qx7M\",\"status\":\"scheduled\",\"reference\":\"ORDER-10045\",\"fee\":{\"total\":280000,\"currency\":\"NGN\"}}}}",
+      "header": "t=1793016302,v1=633e786165302cf49cb394b2149f54fbab25365b1fbab5fdcea773c41885a4d1,v1=b7e729bf8d5145ab7979be841b3a1a78b3a568f45ab5a6721a52e635e4cab962",
+      "secrets": [
+        "whsec_test_vectorsA1b2C3d4E5f6G7h8I9j0K1l2M3n4"
+      ],
+      "now": 1793016302,
+      "valid": true
+    },
+    {
+      "name": "rotation: either secret in a list verifies",
+      "payload": "{\"id\":\"evt_4fQ7Hd2X\",\"type\":\"delivery.booked\",\"created_at\":\"2026-11-09T10:20:00+01:00\",\"livemode\":false,\"data\":{\"delivery\":{\"id\":\"dlv_9Kd3Qx7M\",\"status\":\"scheduled\",\"reference\":\"ORDER-10045\",\"fee\":{\"total\":280000,\"currency\":\"NGN\"}}}}",
+      "header": "t=1793016302,v1=b7e729bf8d5145ab7979be841b3a1a78b3a568f45ab5a6721a52e635e4cab962",
+      "secrets": [
+        "whsec_test_vectorsZ9y8X7w6V5u4T3s2R1q0P9o8N7m6",
+        "whsec_test_vectorsA1b2C3d4E5f6G7h8I9j0K1l2M3n4"
+      ],
+      "now": 1793016302,
+      "valid": true
+    },
+    {
+      "name": "wrong secret",
+      "payload": "{\"id\":\"evt_4fQ7Hd2X\",\"type\":\"delivery.booked\",\"created_at\":\"2026-11-09T10:20:00+01:00\",\"livemode\":false,\"data\":{\"delivery\":{\"id\":\"dlv_9Kd3Qx7M\",\"status\":\"scheduled\",\"reference\":\"ORDER-10045\",\"fee\":{\"total\":280000,\"currency\":\"NGN\"}}}}",
+      "header": "t=1793016302,v1=b7e729bf8d5145ab7979be841b3a1a78b3a568f45ab5a6721a52e635e4cab962",
+      "secrets": [
+        "whsec_test_vectorsNotTheEndpointsSecret000000"
+      ],
+      "now": 1793016302,
+      "valid": false,
+      "error": "SIGNATURE_MISMATCH"
+    },
+    {
+      "name": "body changed after signing",
+      "payload": "{\"id\":\"evt_4fQ7Hd2X\",\"type\":\"delivery.booked\",\"created_at\":\"2026-11-09T10:20:00+01:00\",\"livemode\":false,\"data\":{\"delivery\":{\"id\":\"dlv_9Kd3Qx7M\",\"status\":\"scheduled\",\"reference\":\"ORDER-10045\",\"fee\":{\"total\":1,\"currency\":\"NGN\"}}}}",
+      "header": "t=1793016302,v1=b7e729bf8d5145ab7979be841b3a1a78b3a568f45ab5a6721a52e635e4cab962",
+      "secrets": [
+        "whsec_test_vectorsA1b2C3d4E5f6G7h8I9j0K1l2M3n4"
+      ],
+      "now": 1793016302,
+      "valid": false,
+      "error": "SIGNATURE_MISMATCH"
+    },
+    {
+      "name": "body re-serialised (spaces added)",
+      "payload": "{\n  \"id\": \"evt_4fQ7Hd2X\",\n  \"type\": \"delivery.booked\",\n  \"created_at\": \"2026-11-09T10:20:00+01:00\",\n  \"livemode\": false,\n  \"data\": {\n    \"delivery\": {\n      \"id\": \"dlv_9Kd3Qx7M\",\n      \"status\": \"scheduled\",\n      \"reference\": \"ORDER-10045\",\n      \"fee\": {\n        \"total\": 280000,\n        \"currency\": \"NGN\"\n      }\n    }\n  }\n}",
+      "header": "t=1793016302,v1=b7e729bf8d5145ab7979be841b3a1a78b3a568f45ab5a6721a52e635e4cab962",
+      "secrets": [
+        "whsec_test_vectorsA1b2C3d4E5f6G7h8I9j0K1l2M3n4"
+      ],
+      "now": 1793016302,
+      "valid": false,
+      "error": "SIGNATURE_MISMATCH"
+    },
+    {
+      "name": "signed 301 s ago",
+      "payload": "{\"id\":\"evt_4fQ7Hd2X\",\"type\":\"delivery.booked\",\"created_at\":\"2026-11-09T10:20:00+01:00\",\"livemode\":false,\"data\":{\"delivery\":{\"id\":\"dlv_9Kd3Qx7M\",\"status\":\"scheduled\",\"reference\":\"ORDER-10045\",\"fee\":{\"total\":280000,\"currency\":\"NGN\"}}}}",
+      "header": "t=1793016001,v1=596dc3e3fdf0dce36737f635cb9816ef25f116f1b01f00a6fbec3ce0a841f77d",
+      "secrets": [
+        "whsec_test_vectorsA1b2C3d4E5f6G7h8I9j0K1l2M3n4"
+      ],
+      "now": 1793016302,
+      "valid": false,
+      "error": "TIMESTAMP_OUTSIDE_TOLERANCE"
+    },
+    {
+      "name": "signed 301 s ahead",
+      "payload": "{\"id\":\"evt_4fQ7Hd2X\",\"type\":\"delivery.booked\",\"created_at\":\"2026-11-09T10:20:00+01:00\",\"livemode\":false,\"data\":{\"delivery\":{\"id\":\"dlv_9Kd3Qx7M\",\"status\":\"scheduled\",\"reference\":\"ORDER-10045\",\"fee\":{\"total\":280000,\"currency\":\"NGN\"}}}}",
+      "header": "t=1793016603,v1=0830997d797ec8d5713087896bf03de570f9872a6c4a5345ed128f194af9219c",
+      "secrets": [
+        "whsec_test_vectorsA1b2C3d4E5f6G7h8I9j0K1l2M3n4"
+      ],
+      "now": 1793016302,
+      "valid": false,
+      "error": "TIMESTAMP_OUTSIDE_TOLERANCE"
+    },
+    {
+      "name": "signed exactly 300 s ago",
+      "payload": "{\"id\":\"evt_4fQ7Hd2X\",\"type\":\"delivery.booked\",\"created_at\":\"2026-11-09T10:20:00+01:00\",\"livemode\":false,\"data\":{\"delivery\":{\"id\":\"dlv_9Kd3Qx7M\",\"status\":\"scheduled\",\"reference\":\"ORDER-10045\",\"fee\":{\"total\":280000,\"currency\":\"NGN\"}}}}",
+      "header": "t=1793016002,v1=8a370665fc8cd2608c363ad7fa5d4b8243fa45838e0bbfe306543f584527cdde",
+      "secrets": [
+        "whsec_test_vectorsA1b2C3d4E5f6G7h8I9j0K1l2M3n4"
+      ],
+      "now": 1793016302,
+      "valid": true
+    },
+    {
+      "name": "non-ASCII body (UTF-8)",
+      "payload": "{\"id\":\"evt_4fQ7Hd2X\",\"type\":\"wallet.funded\",\"created_at\":\"2026-11-09T10:20:00+01:00\",\"livemode\":false,\"data\":{\"amount\":500000,\"currency\":\"NGN\",\"balance\":780000,\"transaction\":{\"id\":\"txn_2Lp9Qa\",\"description\":\"Wallet funding ₦5,000 from Èkó store\"}}}",
+      "header": "t=1793016302,v1=5fcfdcaac44b82d5e168b48ac5a16e2b04d72963bf0699c8819d2e6ed9fe23ca",
+      "secrets": [
+        "whsec_test_vectorsA1b2C3d4E5f6G7h8I9j0K1l2M3n4"
+      ],
+      "now": 1793016302,
+      "valid": true
+    },
+    {
+      "name": "an event type this SDK doesn't know yet",
+      "payload": "{\"id\":\"evt_4fQ7Hd2X\",\"type\":\"order.paid\",\"created_at\":\"2026-11-09T10:20:00+01:00\",\"livemode\":false,\"data\":{\"order\":{\"id\":\"ord_7Hk2Mq\",\"total\":1250000}}}",
+      "header": "t=1793016302,v1=d4058b1e3d2316dbd8d58a40afd67bb25732f0757f9b685c84b33da4cf2ae165",
+      "secrets": [
+        "whsec_test_vectorsA1b2C3d4E5f6G7h8I9j0K1l2M3n4"
+      ],
+      "now": 1793016302,
+      "valid": true
+    },
+    {
+      "name": "one bad v1 before a good one",
+      "payload": "{\"id\":\"evt_4fQ7Hd2X\",\"type\":\"delivery.booked\",\"created_at\":\"2026-11-09T10:20:00+01:00\",\"livemode\":false,\"data\":{\"delivery\":{\"id\":\"dlv_9Kd3Qx7M\",\"status\":\"scheduled\",\"reference\":\"ORDER-10045\",\"fee\":{\"total\":280000,\"currency\":\"NGN\"}}}}",
+      "header": "t=1793016302,v1=0000000000000000000000000000000000000000000000000000000000000000,v1=b7e729bf8d5145ab7979be841b3a1a78b3a568f45ab5a6721a52e635e4cab962",
+      "secrets": [
+        "whsec_test_vectorsA1b2C3d4E5f6G7h8I9j0K1l2M3n4"
+      ],
+      "now": 1793016302,
+      "valid": true
+    },
+    {
+      "name": "spaces around the parts",
+      "payload": "{\"id\":\"evt_4fQ7Hd2X\",\"type\":\"delivery.booked\",\"created_at\":\"2026-11-09T10:20:00+01:00\",\"livemode\":false,\"data\":{\"delivery\":{\"id\":\"dlv_9Kd3Qx7M\",\"status\":\"scheduled\",\"reference\":\"ORDER-10045\",\"fee\":{\"total\":280000,\"currency\":\"NGN\"}}}}",
+      "header": " t=1793016302 , v1=b7e729bf8d5145ab7979be841b3a1a78b3a568f45ab5a6721a52e635e4cab962 ",
+      "secrets": [
+        "whsec_test_vectorsA1b2C3d4E5f6G7h8I9j0K1l2M3n4"
+      ],
+      "now": 1793016302,
+      "valid": true
+    },
+    {
+      "name": "uppercase hex",
+      "payload": "{\"id\":\"evt_4fQ7Hd2X\",\"type\":\"delivery.booked\",\"created_at\":\"2026-11-09T10:20:00+01:00\",\"livemode\":false,\"data\":{\"delivery\":{\"id\":\"dlv_9Kd3Qx7M\",\"status\":\"scheduled\",\"reference\":\"ORDER-10045\",\"fee\":{\"total\":280000,\"currency\":\"NGN\"}}}}",
+      "header": "t=1793016302,v1=B7E729BF8D5145AB7979BE841B3A1A78B3A568F45AB5A6721A52E635E4CAB962",
+      "secrets": [
+        "whsec_test_vectorsA1b2C3d4E5f6G7h8I9j0K1l2M3n4"
+      ],
+      "now": 1793016302,
+      "valid": true
+    },
+    {
+      "name": "truncated signature",
+      "payload": "{\"id\":\"evt_4fQ7Hd2X\",\"type\":\"delivery.booked\",\"created_at\":\"2026-11-09T10:20:00+01:00\",\"livemode\":false,\"data\":{\"delivery\":{\"id\":\"dlv_9Kd3Qx7M\",\"status\":\"scheduled\",\"reference\":\"ORDER-10045\",\"fee\":{\"total\":280000,\"currency\":\"NGN\"}}}}",
+      "header": "t=1793016302,v1=b7e729bf8d5145ab7979be841b3a1a78b3a568f45ab5a6721a52e635e4cab96",
+      "secrets": [
+        "whsec_test_vectorsA1b2C3d4E5f6G7h8I9j0K1l2M3n4"
+      ],
+      "now": 1793016302,
+      "valid": false,
+      "error": "SIGNATURE_MISMATCH"
+    },
+    {
+      "name": "empty header",
+      "payload": "{\"id\":\"evt_4fQ7Hd2X\",\"type\":\"delivery.booked\",\"created_at\":\"2026-11-09T10:20:00+01:00\",\"livemode\":false,\"data\":{\"delivery\":{\"id\":\"dlv_9Kd3Qx7M\",\"status\":\"scheduled\",\"reference\":\"ORDER-10045\",\"fee\":{\"total\":280000,\"currency\":\"NGN\"}}}}",
+      "header": "",
+      "secrets": [
+        "whsec_test_vectorsA1b2C3d4E5f6G7h8I9j0K1l2M3n4"
+      ],
+      "now": 1793016302,
+      "valid": false,
+      "error": "NO_SIGNATURE_HEADER"
+    },
+    {
+      "name": "no v1",
+      "payload": "{\"id\":\"evt_4fQ7Hd2X\",\"type\":\"delivery.booked\",\"created_at\":\"2026-11-09T10:20:00+01:00\",\"livemode\":false,\"data\":{\"delivery\":{\"id\":\"dlv_9Kd3Qx7M\",\"status\":\"scheduled\",\"reference\":\"ORDER-10045\",\"fee\":{\"total\":280000,\"currency\":\"NGN\"}}}}",
+      "header": "t=1793016302",
+      "secrets": [
+        "whsec_test_vectorsA1b2C3d4E5f6G7h8I9j0K1l2M3n4"
+      ],
+      "now": 1793016302,
+      "valid": false,
+      "error": "NO_SIGNATURE"
+    },
+    {
+      "name": "t isn't a number",
+      "payload": "{\"id\":\"evt_4fQ7Hd2X\",\"type\":\"delivery.booked\",\"created_at\":\"2026-11-09T10:20:00+01:00\",\"livemode\":false,\"data\":{\"delivery\":{\"id\":\"dlv_9Kd3Qx7M\",\"status\":\"scheduled\",\"reference\":\"ORDER-10045\",\"fee\":{\"total\":280000,\"currency\":\"NGN\"}}}}",
+      "header": "t=soon,v1=b7e729bf8d5145ab7979be841b3a1a78b3a568f45ab5a6721a52e635e4cab962",
+      "secrets": [
+        "whsec_test_vectorsA1b2C3d4E5f6G7h8I9j0K1l2M3n4"
+      ],
+      "now": 1793016302,
+      "valid": false,
+      "error": "INVALID_SIGNATURE_HEADER"
+    },
+    {
+      "name": "no t",
+      "payload": "{\"id\":\"evt_4fQ7Hd2X\",\"type\":\"delivery.booked\",\"created_at\":\"2026-11-09T10:20:00+01:00\",\"livemode\":false,\"data\":{\"delivery\":{\"id\":\"dlv_9Kd3Qx7M\",\"status\":\"scheduled\",\"reference\":\"ORDER-10045\",\"fee\":{\"total\":280000,\"currency\":\"NGN\"}}}}",
+      "header": "v1=b7e729bf8d5145ab7979be841b3a1a78b3a568f45ab5a6721a52e635e4cab962",
+      "secrets": [
+        "whsec_test_vectorsA1b2C3d4E5f6G7h8I9j0K1l2M3n4"
+      ],
+      "now": 1793016302,
+      "valid": false,
+      "error": "INVALID_SIGNATURE_HEADER"
+    },
+    {
+      "name": "a v0 scheme only",
+      "payload": "{\"id\":\"evt_4fQ7Hd2X\",\"type\":\"delivery.booked\",\"created_at\":\"2026-11-09T10:20:00+01:00\",\"livemode\":false,\"data\":{\"delivery\":{\"id\":\"dlv_9Kd3Qx7M\",\"status\":\"scheduled\",\"reference\":\"ORDER-10045\",\"fee\":{\"total\":280000,\"currency\":\"NGN\"}}}}",
+      "header": "t=1793016302,v0=b7e729bf8d5145ab7979be841b3a1a78b3a568f45ab5a6721a52e635e4cab962",
+      "secrets": [
+        "whsec_test_vectorsA1b2C3d4E5f6G7h8I9j0K1l2M3n4"
+      ],
+      "now": 1793016302,
+      "valid": false,
+      "error": "NO_SIGNATURE"
+    }
+  ]
+}

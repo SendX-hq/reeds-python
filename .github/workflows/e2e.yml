@@ -1,0 +1,35 @@
+name: End to end (Test mode)
+
+# The library against the real API, nightly and on demand, with the TEST
+# credentials of a dedicated account. Test mode never moves real money or sends
+# a rider.
+#
+# Secrets: REEDS_E2E_CLIENT_ID (rci_test_...) and REEDS_E2E_CLIENT_SECRET (rcs_test_...).
+# Variable (optional): REEDS_E2E_BASE_URL, default https://api.getreeds.co.
+on:
+  schedule:
+    - cron: "15 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.14"
+      - run: uv venv && uv pip install -e . --group test
+      - name: Fail when the credentials are missing (a skipped run proves nothing)
+        env:
+          REEDS_E2E_CLIENT_ID: ${{ secrets.REEDS_E2E_CLIENT_ID }}
+        run: test -n "$REEDS_E2E_CLIENT_ID"
+      - run: .venv/bin/python -m pytest tests/e2e -m e2e
+        env:
+          REEDS_E2E_REQUIRED: "1"
+          REEDS_E2E_CLIENT_ID: ${{ secrets.REEDS_E2E_CLIENT_ID }}
+          REEDS_E2E_CLIENT_SECRET: ${{ secrets.REEDS_E2E_CLIENT_SECRET }}
+          REEDS_E2E_BASE_URL: ${{ vars.REEDS_E2E_BASE_URL }}

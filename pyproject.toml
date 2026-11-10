@@ -1,0 +1,94 @@
+[build-system]
+requires = ["hatchling>=1.26"]
+build-backend = "hatchling.build"
+
+[project]
+name = "reeds-sdk"
+dynamic = ["version"]
+description = "The official Python library for the Reeds APIs: one client for every Reeds service. Shipping: quotes, deliveries, labels, wallet, invoices and webhooks."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.10"
+authors = [{ name = "Reeds", email = "support@getreeds.co" }]
+keywords = ["reeds", "shipping", "delivery", "logistics", "nigeria", "api", "sdk", "webhooks", "ecommerce"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Framework :: AsyncIO",
+    "Typing :: Typed",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    "httpx>=0.26.0,<1",
+    "pydantic>=2.5.0,<3",
+    "typing-extensions>=4.7.0",
+]
+
+[project.urls]
+Homepage = "https://developer.getreeds.co"
+Documentation = "https://github.com/SendX-hq/reeds-python#readme"
+Repository = "https://github.com/SendX-hq/reeds-python"
+Issues = "https://github.com/SendX-hq/reeds-python/issues"
+Changelog = "https://github.com/SendX-hq/reeds-python/blob/main/CHANGELOG.md"
+
+[dependency-groups]
+# What the tests need. The lowest-dependencies CI job installs only this, around the library's floors.
+test = ["pytest>=8", "pyyaml>=6"]
+lint = ["mypy>=1.13", "pyright[nodejs]>=1.1.390", "ruff>=0.8"]
+# The README's webhook handlers run in real apps (tests/test_frameworks.py); not dependencies of the library.
+frameworks = ["fastapi", "flask", "django"]
+dev = [{ include-group = "test" }, { include-group = "lint" }, { include-group = "frameworks" }]
+
+[tool.hatch.version]
+path = "src/reeds/_version.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/reeds"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/reeds", "tests", "spec", "scripts", "README.md", "CHANGELOG.md", "LICENSE"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+markers = ["e2e: against the real API in Test mode (needs REEDS_E2E_CLIENT_ID and REEDS_E2E_CLIENT_SECRET)"]
+
+[tool.mypy]
+strict = true
+python_version = "3.10"
+files = ["src/reeds", "tests/readme_examples.py"]
+
+[tool.pyright]
+include = ["tests/readme_examples.py"]
+pythonVersion = "3.10"
+typeCheckingMode = "strict"
+# README snippets show calls whose results the reader uses; the checker needn't.
+reportUnusedExpression = "none"
+reportUnusedFunction = "none"
+reportUnusedVariable = "none"
+reportUnusedImport = "none"
+
+[tool.ruff]
+line-length = 160
+target-version = "py310"
+extend-exclude = ["tests/fixtures"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
+ignore = ["RUF001", "RUF002", "RUF003", "RUF005"]
+
+[tool.ruff.format]
+# Written by scripts/generate.py, which CI re-runs and compares byte for byte.
+exclude = ["src/reeds/*/_generated.py"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["B011"]

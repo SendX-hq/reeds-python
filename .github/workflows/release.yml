@@ -1,0 +1,67 @@
+name: Release
+
+# Push a tag vX.Y.Z (equal to __version__ in src/reeds/_version.py) to publish
+# reeds-sdk to PyPI with trusted publishing: no token is stored anywhere; PyPI
+# trusts this workflow, in the `pypi` environment, of SendX-hq/reeds-python.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      skip: ${{ steps.published.outputs.skip }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.14"
+      - name: The tag is the package's version
+        run: |
+          version=$(sed -n 's/^__version__ = "\(.*\)"$/\1/p' src/reeds/_version.py)
+          if [ "v${version}" != "${GITHUB_REF_NAME}" ]; then
+            echo "::error::The tag ${GITHUB_REF_NAME} isn't v${version} (src/reeds/_version.py)."
+            exit 1
+          fi
+          echo "VERSION=${version}" >> "$GITHUB_ENV"
+      - name: Skip a version PyPI already has
+        id: published
+        run: |
+          if [ "$(curl -s -o /dev/null -w '%{http_code}' "https://pypi.org/pypi/reeds-sdk/${VERSION}/json")" = 200 ]; then
+            echo "reeds-sdk ${VERSION} is already on PyPI: nothing to publish."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Build the sdist and the wheel
+        run: uv build
+      - name: Check them
+        run: |
+          uvx twine check --strict dist/*
+          uv venv /tmp/wheel
+          uv pip install --python /tmp/wheel dist/*.whl
+          /tmp/wheel/bin/python -c "import reeds, sys; assert reeds.__version__ == sys.argv[1], reeds.__version__" "${VERSION}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    needs: build
+    if: needs.build.outputs.skip != 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/reeds-sdk/
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1

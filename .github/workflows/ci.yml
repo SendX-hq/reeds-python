@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Python ${{ matrix.python }}, ${{ matrix.deps }} dependencies
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        deps: [lowest, latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install, with the matrix's dependency versions
+        run: |
+          uv venv
+          if [ "${{ matrix.deps }}" = lowest ]; then
+            # The library's own dependencies at the lowest versions pyproject.toml allows that install on
+            # this Python (pydantic-core from wheels only), then the dev tools around them.
+            uv pip install --resolution lowest-direct --only-binary pydantic-core -e .
+            uv pip install --group test
+          else
+            uv pip install -e . --group dev
+          fi
+          uv pip list | grep -E '^(httpx|pydantic|pydantic-core|typing-extensions) '
+      - name: Tests (both clients; the framework handlers with the latest dependencies)
+        run: .venv/bin/python -m pytest
+      - name: Smoke test over real HTTP
+        run: .venv/bin/python tests/smoke/smoke.py
+      - name: Lint
+        if: matrix.deps == 'latest'
+        run: .venv/bin/ruff check . && .venv/bin/ruff format --check .
+      - name: Types (mypy --strict on src/reeds and the README examples, pyright on the README examples)
+        if: matrix.deps == 'latest'
+        run: .venv/bin/mypy && .venv/bin/pyright --pythonpath .venv/bin/python
+      - name: The generated types match the specs
+        if: matrix.deps == 'latest'
+        run: .venv/bin/python scripts/generate.py --check
