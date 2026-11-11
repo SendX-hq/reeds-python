@@ -11,9 +11,9 @@ import httpx2
 import pytest
 
 from reeds import AsyncPage, FileResponse, Page, PermissionDeniedError
-from reeds.shipping import Quote, QuoteUnavailable
+from reeds.shipping import Place, PlaceSuggestionsResult, Quote, QuoteUnavailable
 
-from .helpers import Call, catch, collect, delivery, json_response, run, success
+from .helpers import Call, catch, collect, delivery, failure, json_response, run, success
 
 pytestmark = pytest.mark.anyio
 
@@ -124,6 +124,88 @@ async def test_a_route_reeds_doesnt_serve_is_available_false_not_an_error(fake: 
     assert isinstance(result, QuoteUnavailable)
     assert result.available is False
     assert result.reason.code == "INTERSTATE_NOT_AVAILABLE"
+
+
+# ------------------------------------------------------------ address search
+
+TOKEN = "3f2c8d1e-7b4a-4c55-9e0d-2a6b1f9c8e70"
+allen = {
+    "place_id": "ChIJN1t_tDeuEmsRUsoyG83frY4",
+    "name": "23 Allen Avenue",
+    "formatted_address": "23 Allen Ave, Allen, Ikeja 101233, Lagos, Nigeria",
+    "area": "Ikeja",
+    "lga": "Ikeja",
+    "state": "Lagos",
+    "country": "NG",
+    "latitude": 6.6018,
+    "longitude": 3.3515,
+    "precise": True,
+}
+
+
+async def test_address_search_sends_each_call_as_a_get_with_its_query(fake: Any) -> None:
+    def answer(call: Call) -> httpx2.Response:
+        return success({"suggestions": []}) if call.url.path.endswith("/autocomplete") else success(allen)
+
+    api = fake(answer)
+    addresses = api.client().shipping.addresses
+    await run(addresses.autocomplete(query="23 Allen Avenue", session_token=TOKEN))
+    await run(addresses.details(place_id=allen["place_id"], session_token=TOKEN))
+    await run(addresses.details(place_id=allen["place_id"]))
+    await run(addresses.reverse(latitude=6.6018, longitude=3.3515))
+    await run(addresses.reverse(latitude=4.00001, longitude=1e-05))
+
+    calls = api.api_calls()
+    assert [f"{c.method} {c.url.path}" for c in calls] == [
+        "GET /shipping/v1/addresses/autocomplete",
+        "GET /shipping/v1/addresses/details",
+        "GET /shipping/v1/addresses/details",
+        "GET /shipping/v1/addresses/reverse",
+        "GET /shipping/v1/addresses/reverse",
+    ]
+    assert [dict(c.url.params) for c in calls] == [
+        {"query": "23 Allen Avenue", "session_token": TOKEN},
+        {"place_id": allen["place_id"], "session_token": TOKEN},
+        {"place_id": allen["place_id"]},  # no token: the place is a search of its own
+        {"latitude": "6.6018", "longitude": "3.3515"},
+        {"latitude": "4.00001", "longitude": "0.00001"},  # plain decimals, never 1e-05
+    ]
+    assert all(c.body is None and "idempotency-key" not in c.headers for c in calls)
+
+
+async def test_suggestions_and_places_come_back_as_models(fake: Any) -> None:
+    suggestions = [
+        {"place_id": "ChIJN1t_tDeuEmsRUsoyG83frY4", "main_text": "23 Allen Avenue", "secondary_text": "Ikeja, Lagos, Nigeria"},
+        {"place_id": "ChIJ8TQy0JKLOxARmZ9bJc2sVkA", "main_text": "Allen Avenue Roundabout", "secondary_text": ""},
+    ]
+
+    def answer(call: Call) -> httpx2.Response:
+        if call.url.path.endswith("/autocomplete"):
+            return success({"suggestions": suggestions})
+        return success({**allen, "lga": None, "precise": False} if call.url.path.endswith("/reverse") else allen)
+
+    addresses = fake(answer).client().shipping.addresses
+    found = await run(addresses.autocomplete(query="Allen", session_token=TOKEN))
+    assert isinstance(found, PlaceSuggestionsResult)
+    assert [(s.place_id, s.main_text, s.secondary_text) for s in found.suggestions] == [tuple(s.values()) for s in suggestions]
+
+    place = await run(addresses.details(place_id=allen["place_id"], session_token=TOKEN))
+    assert isinstance(place, Place)
+    assert (place.formatted_address, place.area, place.lga, place.state, place.country) == (allen["formatted_address"], "Ikeja", "Ikeja", "Lagos", "NG")
+    assert (place.latitude, place.longitude, place.precise) == (6.6018, 3.3515, True)
+
+    pin = await run(addresses.reverse(latitude=6.6018, longitude=3.3515))
+    assert isinstance(pin, Place)
+    assert (pin.lga, pin.precise) == (None, False)
+
+
+async def test_address_search_past_the_allowance_or_switched_off_is_permission_denied(fake: Any) -> None:
+    for code in ("ADDRESS_SEARCH_LIMIT_REACHED", "ADDRESS_SEARCH_DISABLED"):
+        api = fake(lambda call, code=code: failure(403, code, "No more address searches."))
+        error = await catch(lambda api=api: api.client().shipping.addresses.autocomplete(query="Allen", session_token=TOKEN))
+        assert isinstance(error, PermissionDeniedError)
+        assert (error.status, error.code, error.doc_url) == (403, code, f"https://developer.getreeds.co/errors/{code}")
+        assert len(api.api_calls()) == 1  # a 403 is never retried
 
 
 # ------------------------------------------------------------ lists

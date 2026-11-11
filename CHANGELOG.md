@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.0 (2026-11-11)
+
+### Added
+
+- Address search: `reeds.shipping.addresses.autocomplete(query=..., session_token=...)` for suggestions as a customer types, `details(place_id=..., session_token=...)` for the full address of the place they pick (with the `lga`, `state` and `place_id` a quote needs), and `reverse(latitude=..., longitude=...)` for the address at a map pin. On `Reeds` and `AsyncReeds`. They return `PlaceSuggestionsResult` and `Place`. Address search is free, within an allowance in Test mode; past it, or switched off by Reeds, a search raises `PermissionDeniedError` with the code `ADDRESS_SEARCH_LIMIT_REACHED` or `ADDRESS_SEARCH_DISABLED`.
+- The parameter types `AddressAutocompleteParams`, `AddressDetailsParams` and `AddressReverseParams`.
+- The models and parameter types follow the Shipping API's OpenAPI spec as of 2026-11-11.
+
+### Changed
+
+- A `float` in a query string is sent as a plain decimal (`0.00001`, never `1e-05`).
+
 ## 0.1.0 (2026-11-10)
 
 The first release, for the Shipping API. Install with `pip install reeds-sdk`; import it as `reeds`.

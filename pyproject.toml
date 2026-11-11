@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "reeds-sdk"
 dynamic = ["version"]
-description = "The official Python library for the Reeds APIs: one client for every Reeds service. Shipping: quotes, deliveries, labels, wallet, invoices and webhooks."
+description = "The official Python library for the Reeds APIs: one client for every Reeds service. Shipping: address search, quotes, deliveries, labels, wallet, invoices and webhooks."
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]

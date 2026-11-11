@@ -120,6 +120,44 @@ def quickstart() -> None:
     reeds.webhooks.send_test(type="delivery.booked")
 
 
+def address_search(dropoff: shipping.AddressInputParam) -> None:
+    from reeds import Reeds
+
+    reeds = Reeds()
+
+    import uuid
+
+    from reeds.shipping import AddressInputParam
+
+    # One session token per address being typed. Send it on every call while your customer
+    # types that address, and on the details call: the whole search then counts as one.
+    session = str(uuid.uuid4())
+
+    found = reeds.shipping.addresses.autocomplete(query="23 Allen Avenue", session_token=session)
+    for suggestion in found.suggestions:  # at most 6, best first; empty when nothing matched
+        print(suggestion.place_id, suggestion.main_text, suggestion.secondary_text)
+
+    # The suggestion your customer picks, with the same token: this ends the search.
+    place = reeds.shipping.addresses.details(place_id=found.suggestions[0].place_id, session_token=session)
+    if place.lga is None:
+        raise ValueError("Ask your customer for the LGA: a quote needs it.")
+
+    pickup: AddressInputParam = {
+        "name": "Tola Fabrics",
+        "phone": "08051234567",
+        "address": place.formatted_address,
+        "lga": place.lga,
+        "state": place.state,
+        "place_id": place.place_id,  # the spot is then exact
+    }
+    if place.area:
+        pickup["area"] = place.area
+    quote = reeds.shipping.quotes.create(pickup=pickup, dropoff=dropoff, package={"description": "2 pairs of sneakers", "quantity": 1, "weight_kg": 1.5})
+
+    pin = reeds.shipping.addresses.reverse(latitude=6.6018, longitude=3.3515)  # one search per pin
+    print(pin.formatted_address, pin.lga, pin.state, pin.place_id)
+
+
 def async_usage(pickup: shipping.AddressInputParam, dropoff: shipping.AddressInputParam) -> None:
     import asyncio
 
