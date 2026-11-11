@@ -14,6 +14,7 @@ from .._files import FileResponse
 from .._pagination import Page
 from ._generated import (
     AdvanceRequestParam,
+    AutocompleteAddressesParams,
     BookFromQuoteParam,
     CancelRequestParam,
     Coverage,
@@ -21,18 +22,22 @@ from ._generated import (
     DeliveryUpdateParam,
     FundWalletRequestParam,
     FundWalletResponse,
+    GetAddressDetailsParams,
     Invoice,
     ListDeliveriesParams,
     ListInvoicesParams,
     ListWalletTransactionsParams,
+    Place,
+    PlaceSuggestionsResult,
     Quote,
     QuoteRequestParam,
     QuoteUnavailable,
+    ReverseGeocodeAddressParams,
     Wallet,
     WalletTransaction,
 )
 
-__all__ = ["Coverages", "Deliveries", "Invoices", "Quotes", "Sandbox", "Shipping", "WalletResource"]
+__all__ = ["Addresses", "Coverages", "Deliveries", "Invoices", "Quotes", "Sandbox", "Shipping", "WalletResource"]
 
 SHIPPING_PATH = "/shipping/v1"
 """The Shipping API's base path."""
@@ -64,6 +69,55 @@ class Coverages:
     def get(self, *, timeout: float | None = None, max_retries: int | None = None, extra_headers: Mapping[str, str] | None = None) -> Coverage:
         """The states, zones and inter-state routes Reeds serves."""
         result: Coverage = self._core.get(path("coverage"), Coverage, options=options(None, timeout, max_retries, extra_headers))
+        return result
+
+
+class Addresses:
+    """Address search: suggestions as a customer types, a place's full address, the address at a map pin.
+
+    Free, within what Reeds sets for the account: past it, ``PermissionDeniedError`` with the code
+    ``ADDRESS_SEARCH_LIMIT_REACHED``, or ``ADDRESS_SEARCH_DISABLED`` when Reeds has switched it off.
+    """
+
+    def __init__(self, core: SyncCore) -> None:
+        self._core = core
+
+    def autocomplete(
+        self,
+        *,
+        timeout: float | None = None,
+        max_retries: int | None = None,
+        extra_headers: Mapping[str, str] | None = None,
+        **params: Unpack[AutocompleteAddressesParams],
+    ) -> PlaceSuggestionsResult:
+        """Places in Nigeria for what the customer has typed, best first. Use one ``session_token`` per address being typed."""
+        result: PlaceSuggestionsResult = self._core.get(
+            path("addresses", "autocomplete"), PlaceSuggestionsResult, query=params, options=options(None, timeout, max_retries, extra_headers)
+        )
+        return result
+
+    def details(
+        self,
+        *,
+        timeout: float | None = None,
+        max_retries: int | None = None,
+        extra_headers: Mapping[str, str] | None = None,
+        **params: Unpack[GetAddressDetailsParams],
+    ) -> Place:
+        """The full address of a place. Send the search's ``session_token`` so this ends that search instead of counting as another."""
+        result: Place = self._core.get(path("addresses", "details"), Place, query=params, options=options(None, timeout, max_retries, extra_headers))
+        return result
+
+    def reverse(
+        self,
+        *,
+        timeout: float | None = None,
+        max_retries: int | None = None,
+        extra_headers: Mapping[str, str] | None = None,
+        **params: Unpack[ReverseGeocodeAddressParams],
+    ) -> Place:
+        """The address nearest to a map pin in Nigeria. Each call is one search."""
+        result: Place = self._core.get(path("addresses", "reverse"), Place, query=params, options=options(None, timeout, max_retries, extra_headers))
         return result
 
 
@@ -278,9 +332,10 @@ class Sandbox:
 
 
 class Shipping:
-    """The Shipping API: quotes, deliveries, the wallet, invoices and the sandbox."""
+    """The Shipping API: coverage, address search, quotes, deliveries, the wallet, invoices and the sandbox."""
 
     coverage: Coverages
+    addresses: Addresses
     quotes: Quotes
     deliveries: Deliveries
     wallet: WalletResource
@@ -289,6 +344,7 @@ class Shipping:
 
     def __init__(self, core: SyncCore) -> None:
         self.coverage = Coverages(core)
+        self.addresses = Addresses(core)
         self.quotes = Quotes(core)
         self.deliveries = Deliveries(core)
         self.wallet = WalletResource(core)

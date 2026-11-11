@@ -41,7 +41,7 @@ if isinstance(quote, Quote):
 - [Why use the library](#why-use-the-library)
 - [Install](#install)
 - [Credentials and modes](#credentials-and-modes)
-- [Shipping](#shipping): [quickstart](#quickstart), [coverage and quotes](#coverage-and-quotes), [deliveries](#deliveries), [statuses](#delivery-statuses), [labels](#labels), [wallet and invoices](#wallet-and-invoices), [sandbox](#test-mode-and-the-sandbox)
+- [Shipping](#shipping): [quickstart](#quickstart), [coverage and quotes](#coverage-and-quotes), [address search](#address-search), [deliveries](#deliveries), [statuses](#delivery-statuses), [labels](#labels), [wallet and invoices](#wallet-and-invoices), [sandbox](#test-mode-and-the-sandbox)
 - [Async](#async)
 - [Webhooks](#webhooks): [FastAPI](#fastapi), [Flask](#flask), [Django](#django)
 - [Lists and pagination](#lists-and-pagination)
@@ -57,7 +57,7 @@ Reeds offers its services as separate APIs. The library gives each one a propert
 
 | Service | On the client | Status |
 |---|---|---|
-| **Shipping**: quotes, deliveries, labels, the wallet, invoices, the sandbox | `reeds.shipping` | **Available** |
+| **Shipping**: address search, quotes, deliveries, labels, the wallet, invoices, the sandbox | `reeds.shipping` | **Available** |
 
 Webhooks are shared: one endpoint receives every service's events, all verified by `reeds.webhooks`. A new service arrives in a minor version of this library, so upgrading never breaks the services you already use.
 
@@ -147,6 +147,52 @@ for state in coverage.states or []:
 ```
 
 A quote holds its price for 24 hours. A route Reeds doesn't serve comes back as a `QuoteUnavailable` (`available` is `False`) with a `reason` (`ADDRESS_NOT_SERVICEABLE`, `INTERSTATE_NOT_AVAILABLE`, ...), never as an error. Branch on `reason.code`, not the message.
+
+### Address search
+
+Complete an address as your customer types, or read one from a map pin, and give the quote the `lga`, `state` and `place_id` it needs. The addresses are Google's, in Nigeria. Call it from your server, as you do every call with your credentials.
+
+```python
+import uuid
+
+from reeds.shipping import AddressInputParam
+
+# One session token per address being typed. Send it on every call while your customer
+# types that address, and on the details call: the whole search then counts as one.
+session = str(uuid.uuid4())
+
+found = reeds.shipping.addresses.autocomplete(query="23 Allen Avenue", session_token=session)
+for suggestion in found.suggestions:  # at most 6, best first; empty when nothing matched
+    print(suggestion.place_id, suggestion.main_text, suggestion.secondary_text)
+
+# The suggestion your customer picks, with the same token: this ends the search.
+place = reeds.shipping.addresses.details(place_id=found.suggestions[0].place_id, session_token=session)
+if place.lga is None:
+    raise ValueError("Ask your customer for the LGA: a quote needs it.")
+
+pickup: AddressInputParam = {
+    "name": "Tola Fabrics",
+    "phone": "08051234567",
+    "address": place.formatted_address,
+    "lga": place.lga,
+    "state": place.state,
+    "place_id": place.place_id,  # the spot is then exact
+}
+if place.area:
+    pickup["area"] = place.area
+quote = reeds.shipping.quotes.create(pickup=pickup, dropoff=dropoff, package={"description": "2 pairs of sneakers", "quantity": 1, "weight_kg": 1.5})
+```
+
+`precise` is `False` for a whole area or road, whose point is only its middle: ask your customer for the street. For a map pin:
+
+```python
+pin = reeds.shipping.addresses.reverse(latitude=6.6018, longitude=3.3515)  # one search per pin
+print(pin.formatted_address, pin.lga, pin.state, pin.place_id)
+```
+
+To deliver to the pin itself, send your pin's `latitude` and `longitude` in the quote, with this address as the text; to deliver to the address found, send its `place_id`. A pin outside Nigeria is an `InvalidRequestError`, and one with no address near it a `NotFoundError`.
+
+Address search is free. Test mode has an allowance of 50 searches to start, which Reeds can raise; Live is unlimited unless Reeds sets a monthly limit for your account. Past it, a search raises `PermissionDeniedError` with the code `ADDRESS_SEARCH_LIMIT_REACHED`; if Reeds has switched address search off for your account, `ADDRESS_SEARCH_DISABLED`. A search you started can always finish. Google's rules apply to its addresses: show "Powered by Google" (or the Google logo) next to suggestions that aren't on a Google map, and show pins on a Google map. See the [address search guide](https://developer.getreeds.co/docs/shipping/address-search).
 
 ### Deliveries
 
@@ -428,7 +474,7 @@ except ReedsError as error:
 | Class | Status | Typical codes |
 |---|---|---|
 | `AuthenticationError` | 401, or wrong or missing credentials | `TOKEN_EXPIRED`, `invalid_client`, `MISSING_CREDENTIALS` |
-| `PermissionDeniedError` | 403 | `INSUFFICIENT_SCOPE`, `IP_NOT_ALLOWED`, `TEST_MODE_ONLY`, `ACCOUNT_ON_HOLD` |
+| `PermissionDeniedError` | 403 | `INSUFFICIENT_SCOPE`, `IP_NOT_ALLOWED`, `TEST_MODE_ONLY`, `ACCOUNT_ON_HOLD`, `ADDRESS_SEARCH_LIMIT_REACHED`, `ADDRESS_SEARCH_DISABLED` |
 | `NotFoundError` | 404 | `NOT_FOUND` |
 | `ConflictError` | 409 | `ACTION_NOT_ALLOWED`, `QUOTE_ALREADY_USED`, `QUOTE_EXPIRED`, `CANCEL_NOT_ALLOWED` |
 | `InvalidRequestError` | 400, 422 | `INVALID_REQUEST` (see `fields`), `IDEMPOTENCY_KEY_REQUIRED` |

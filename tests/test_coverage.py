@@ -35,6 +35,9 @@ def shipping_methods(client: Any) -> dict[str, Any]:
     return {
         "createAccessToken": "core",
         "getCoverage": s.coverage.get,
+        "autocompleteAddresses": s.addresses.autocomplete,
+        "getAddressDetails": s.addresses.details,
+        "reverseGeocodeAddress": s.addresses.reverse,
         "createQuote": s.quotes.create,
         "createDelivery": s.deliveries.create,
         "listDeliveries": s.deliveries.list,

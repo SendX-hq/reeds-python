@@ -14,20 +14,26 @@ from ._generated import *  # noqa: F403
 from ._generated import (
     SHIPPING_EVENTS,
     AdvanceRequestParam,
+    AutocompleteAddressesParams,
     BookFromQuoteParam,
     CancelRequestParam,
     DeliveryUpdateParam,
     FundWalletRequestParam,
     FundWalletResponse,
+    GetAddressDetailsParams,
     ListDeliveriesParams,
     ListInvoicesParams,
     ListWalletTransactionsParams,
     QuoteRequestParam,
+    ReverseGeocodeAddressParams,
     TestWebhookRequestParam,
 )
 from ._resources import SHIPPING_PATH, Shipping
 
 # The names reeds-node and reeds-php use, for the same shapes.
+AddressAutocompleteParams: TypeAlias = AutocompleteAddressesParams
+AddressDetailsParams: TypeAlias = GetAddressDetailsParams
+AddressReverseParams: TypeAlias = ReverseGeocodeAddressParams
 QuoteCreateParams: TypeAlias = QuoteRequestParam
 DeliveryCreateParams: TypeAlias = BookFromQuoteParam
 DeliveryListParams: TypeAlias = ListDeliveriesParams
@@ -47,6 +53,9 @@ SHIPPING_EVENT_TYPES: tuple[str, ...] = tuple(SHIPPING_EVENTS)
 __all__ = [
     "SHIPPING_EVENT_TYPES",
     "SHIPPING_PATH",
+    "AddressAutocompleteParams",
+    "AddressDetailsParams",
+    "AddressReverseParams",
     "AsyncShipping",
     "DeliveryCancelParams",
     "DeliveryCreateParams",

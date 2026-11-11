@@ -11,6 +11,7 @@ import random
 import time
 from collections.abc import Mapping
 from dataclasses import dataclass, field
+from decimal import Decimal
 from email.utils import parsedate_to_datetime
 from typing import Any, Literal
 
@@ -103,6 +104,9 @@ def encode_query(query: Mapping[str, object] | None) -> dict[str, str]:
             continue
         if isinstance(value, bool):
             out[key] = "true" if value else "false"
+        elif isinstance(value, float):
+            # Plain decimals, never 1e-05: Decimal keeps exactly the digits repr() shows.
+            out[key] = format(Decimal(repr(value)), "f")
         elif isinstance(value, (list, tuple)):
             out[key] = ",".join(str(item) for item in value)
         else:

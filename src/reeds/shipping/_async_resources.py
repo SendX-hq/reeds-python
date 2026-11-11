@@ -11,6 +11,7 @@ from .._files import FileResponse
 from .._pagination import AsyncPaginator
 from ._generated import (
     AdvanceRequestParam,
+    AutocompleteAddressesParams,
     BookFromQuoteParam,
     CancelRequestParam,
     Coverage,
@@ -18,19 +19,23 @@ from ._generated import (
     DeliveryUpdateParam,
     FundWalletRequestParam,
     FundWalletResponse,
+    GetAddressDetailsParams,
     Invoice,
     ListDeliveriesParams,
     ListInvoicesParams,
     ListWalletTransactionsParams,
+    Place,
+    PlaceSuggestionsResult,
     Quote,
     QuoteRequestParam,
     QuoteUnavailable,
+    ReverseGeocodeAddressParams,
     Wallet,
     WalletTransaction,
 )
 from ._resources import options, path, refuse_live
 
-__all__ = ["AsyncCoverages", "AsyncDeliveries", "AsyncInvoices", "AsyncQuotes", "AsyncSandbox", "AsyncShipping", "AsyncWalletResource"]
+__all__ = ["AsyncAddresses", "AsyncCoverages", "AsyncDeliveries", "AsyncInvoices", "AsyncQuotes", "AsyncSandbox", "AsyncShipping", "AsyncWalletResource"]
 
 
 class AsyncCoverages:
@@ -40,6 +45,55 @@ class AsyncCoverages:
     async def get(self, *, timeout: float | None = None, max_retries: int | None = None, extra_headers: Mapping[str, str] | None = None) -> Coverage:
         """The states, zones and inter-state routes Reeds serves."""
         result: Coverage = await self._core.get(path("coverage"), Coverage, options=options(None, timeout, max_retries, extra_headers))
+        return result
+
+
+class AsyncAddresses:
+    """Address search: suggestions as a customer types, a place's full address, the address at a map pin.
+
+    Free, within what Reeds sets for the account: past it, ``PermissionDeniedError`` with the code
+    ``ADDRESS_SEARCH_LIMIT_REACHED``, or ``ADDRESS_SEARCH_DISABLED`` when Reeds has switched it off.
+    """
+
+    def __init__(self, core: AsyncCore) -> None:
+        self._core = core
+
+    async def autocomplete(
+        self,
+        *,
+        timeout: float | None = None,
+        max_retries: int | None = None,
+        extra_headers: Mapping[str, str] | None = None,
+        **params: Unpack[AutocompleteAddressesParams],
+    ) -> PlaceSuggestionsResult:
+        """Places in Nigeria for what the customer has typed, best first. Use one ``session_token`` per address being typed."""
+        result: PlaceSuggestionsResult = await self._core.get(
+            path("addresses", "autocomplete"), PlaceSuggestionsResult, query=params, options=options(None, timeout, max_retries, extra_headers)
+        )
+        return result
+
+    async def details(
+        self,
+        *,
+        timeout: float | None = None,
+        max_retries: int | None = None,
+        extra_headers: Mapping[str, str] | None = None,
+        **params: Unpack[GetAddressDetailsParams],
+    ) -> Place:
+        """The full address of a place. Send the search's ``session_token`` so this ends that search instead of counting as another."""
+        result: Place = await self._core.get(path("addresses", "details"), Place, query=params, options=options(None, timeout, max_retries, extra_headers))
+        return result
+
+    async def reverse(
+        self,
+        *,
+        timeout: float | None = None,
+        max_retries: int | None = None,
+        extra_headers: Mapping[str, str] | None = None,
+        **params: Unpack[ReverseGeocodeAddressParams],
+    ) -> Place:
+        """The address nearest to a map pin in Nigeria. Each call is one search."""
+        result: Place = await self._core.get(path("addresses", "reverse"), Place, query=params, options=options(None, timeout, max_retries, extra_headers))
         return result
 
 
@@ -264,9 +318,10 @@ class AsyncSandbox:
 
 
 class AsyncShipping:
-    """The Shipping API: quotes, deliveries, the wallet, invoices and the sandbox."""
+    """The Shipping API: coverage, address search, quotes, deliveries, the wallet, invoices and the sandbox."""
 
     coverage: AsyncCoverages
+    addresses: AsyncAddresses
     quotes: AsyncQuotes
     deliveries: AsyncDeliveries
     wallet: AsyncWalletResource
@@ -275,6 +330,7 @@ class AsyncShipping:
 
     def __init__(self, core: AsyncCore) -> None:
         self.coverage = AsyncCoverages(core)
+        self.addresses = AsyncAddresses(core)
         self.quotes = AsyncQuotes(core)
         self.deliveries = AsyncDeliveries(core)
         self.wallet = AsyncWalletResource(core)

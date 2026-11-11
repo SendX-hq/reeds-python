@@ -121,7 +121,7 @@ class Reeds:
     """
 
     shipping: Shipping
-    """The Shipping API: quotes, deliveries, the wallet, invoices and the sandbox."""
+    """The Shipping API: address search, quotes, deliveries, the wallet, invoices and the sandbox."""
     webhooks: Webhooks
     """Webhook signature checks and test events, for every API."""
 
@@ -172,7 +172,7 @@ class AsyncReeds:
     """The Reeds API client, async. The same options as Reeds; ``http_client`` is an httpx2.AsyncClient."""
 
     shipping: AsyncShipping
-    """The Shipping API: quotes, deliveries, the wallet, invoices and the sandbox."""
+    """The Shipping API: address search, quotes, deliveries, the wallet, invoices and the sandbox."""
     webhooks: AsyncWebhooks
     """Webhook signature checks and test events, for every API."""
 
