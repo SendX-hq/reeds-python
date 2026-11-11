@@ -50,6 +50,39 @@ class Coverage(ReedsModel):
     """The state-to-state routes Reeds runs. A pair of states not listed has no price."""
 
 
+class PlaceSuggestion(ReedsModel):
+    place_id: str
+    """Google place id. Pass it to `GET /addresses/details`, or as a quote's `place_id`."""
+    main_text: str
+    """The place itself, for the first line of a suggestion."""
+    secondary_text: str
+    """Where it is, for the second line. Can be empty."""
+
+
+class PlaceSuggestionsResult(ReedsModel):
+    suggestions: list[PlaceSuggestion]
+
+
+class Place(ReedsModel):
+    place_id: str
+    """Google place id. Send it as a quote's `place_id` to make the spot exact."""
+    name: str
+    """The place's name, or the start of its address."""
+    formatted_address: str
+    """The full address as Google writes it. Works as a quote's `address` text."""
+    area: str | None
+    """The part of town people name (Ikeja, Lekki Phase 1), for a quote's `area`."""
+    lga: str | None
+    """The local government area, for a quote's `lga`. `null` when Google doesn't name one."""
+    state: str
+    """The state as Reeds spells it (`Lagos`, `FCT`), for a quote's `state`."""
+    country: Literal["NG"]
+    latitude: float
+    longitude: float
+    precise: bool
+    """`true` for a street address, building or business; `false` for a whole area or road, whose point is only its middle."""
+
+
 class QuoteUnavailableReasonDetail(ReedsModel):
     code: QuoteUnavailableReason
     """`ADDRESS_NOT_FOUND`: Reeds could not place an address at all: Google found nothing it trusts there, and Reeds knows neither the area nor the LGA you sent in that state. Check the spelling of `lga` and `state`, add or check the `area`, or send coordinates or a place id.
@@ -78,11 +111,11 @@ class Route(ReedsModel):
 class Fee(ReedsModel):
     """All amounts are integers in kobo."""
     delivery_fee: int
-    """The distance-tier price, in kobo."""
+    """Within a state, the distance-tier price; between states, the route's price. In kobo."""
     vat: int
-    """7.5% VAT on the delivery fee, in kobo."""
+    """7.5% VAT on the delivery fee, in kobo. An inter-state delivery has none."""
     service_charge: int
-    """What rounds the total up to the next NGN 50 (at least NGN 25 is kept as service charge). Carries no VAT. In kobo."""
+    """What rounds the total up to the next NGN 50 (at least NGN 25 is kept as service charge). Carries no VAT. In kobo. An inter-state delivery has none: its total is the route's price."""
     discount: int
     """Discount applied, in kobo."""
     total: int
@@ -210,11 +243,11 @@ class Liability(ReedsModel):
 class DeliveryFee(ReedsModel):
     """The fee on a delivery, with its charging state."""
     delivery_fee: int
-    """The distance-tier price, in kobo."""
+    """Within a state, the distance-tier price; between states, the route's price. In kobo."""
     vat: int
-    """7.5% VAT on the delivery fee, in kobo."""
+    """7.5% VAT on the delivery fee, in kobo. An inter-state delivery has none."""
     service_charge: int
-    """What rounds the total up to the next NGN 50 (at least NGN 25 is kept as service charge). Carries no VAT. In kobo."""
+    """What rounds the total up to the next NGN 50 (at least NGN 25 is kept as service charge). Carries no VAT. In kobo. An inter-state delivery has none: its total is the route's price."""
     discount: int
     """Discount applied, in kobo."""
     total: int
@@ -597,6 +630,28 @@ class InvoiceOverdueEvent(ReedsModel):
     data: InvoiceOverdueEventData
 
 
+class AutocompleteAddressesParams(TypedDict):
+    """The query of autocompleteAddresses."""
+    query: str
+    """What the customer has typed, 1 to 200 characters."""
+    session_token: str
+    """Your token for this search: 8 to 36 letters, digits, hyphens or underscores (a UUID works). The same on every call while one address is typed, so the search counts once."""
+
+
+class GetAddressDetailsParams(TypedDict):
+    """The query of getAddressDetails."""
+    place_id: str
+    """The `place_id` of a suggestion, or any Google place id. Not a Reeds address id (`adr_`): those name a delivery's stops."""
+    session_token: NotRequired[str]
+    """The token of the search this place was chosen in."""
+
+
+class ReverseGeocodeAddressParams(TypedDict):
+    """The query of reverseGeocodeAddress."""
+    latitude: float
+    longitude: float
+
+
 class AddressInputParam(TypedDict):
     """One end of a delivery: who is there, and where. The street address is text; `lga` and `state` name where it is and are required. `area` (the neighbourhood or town) is optional: send it when your customer gives one, because it is what Reeds prices from when the text alone can't be matched exactly (without it, the LGA's centre is used)."""
     name: str
@@ -612,7 +667,7 @@ class AddressInputParam(TypedDict):
     """The local government area."""
     state: str
     place_id: NotRequired[str]
-    """Google place id, if you have one. The place is then the spot."""
+    """Google place id, if you have one (address search gives you one: `GET /addresses/autocomplete`, then `GET /addresses/details`). The place is then the spot."""
     latitude: NotRequired[float]
     """If you have them (for example from your own map pin), the pin is the spot. Send with `longitude`."""
     longitude: NotRequired[float]
@@ -782,6 +837,7 @@ __all__ = [
     "SHIPPING_EVENTS",
     "AddressInputParam",
     "AdvanceRequestParam",
+    "AutocompleteAddressesParams",
     "BookFromQuoteParam",
     "CancelRequestParam",
     "Cancellation",
@@ -813,6 +869,7 @@ __all__ = [
     "Fee",
     "FundWalletRequestParam",
     "FundWalletResponse",
+    "GetAddressDetailsParams",
     "Invoice",
     "InvoiceIssuedEvent",
     "InvoiceIssuedEventData",
@@ -831,6 +888,9 @@ __all__ = [
     "PackageDimensionsCm",
     "PackageDimensionsCmParam",
     "PackageParam",
+    "Place",
+    "PlaceSuggestion",
+    "PlaceSuggestionsResult",
     "Quote",
     "QuoteRequestParam",
     "QuoteUnavailable",
@@ -838,6 +898,7 @@ __all__ = [
     "QuoteUnavailableReasonDetail",
     "RequiredAction",
     "RequiredActionType",
+    "ReverseGeocodeAddressParams",
     "Route",
     "Schedule",
     "Service",
